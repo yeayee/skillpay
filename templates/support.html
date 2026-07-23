@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Pass | SkillPay</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            background-color: #020617; 
+            font-family: 'JetBrains Mono', monospace; 
+        }
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .bg-gold-gradient { background: linear-gradient(135deg, #c6a35f 0%, #a4864b 100%); }
+        .panel-shadow { shadow-lg shadow-[#c6a35f]/5; }
+    </style>
+</head>
+<body class="text-slate-200">
+
+<div class="flex items-center justify-center min-h-screen p-6">
+    <div class="max-w-md w-full bg-[#0f172a] rounded-3xl shadow-2xl border border-slate-800 overflow-hidden panel-shadow">
+        
+        <div class="bg-gold-gradient p-8 text-center text-white">
+            <h1 class="text-2xl font-black tracking-tighter uppercase">Daily Access Pass</h1>
+            <p class="opacity-90 text-[10px] mt-2 font-light tracking-widest uppercase">Support Development & Unlock Full Access</p>
+        </div>
+
+        <div class="p-8">
+            <div id="initSection" class="text-center">
+                <div class="mb-8">
+                    <div class="flex flex-col items-center">
+                        <span class="text-slate-500 text-[10px] uppercase tracking-widest mb-1">Session Contribution</span>
+                        <div class="text-5xl font-black text-[#c6a35f]">
+                            1.0 <span class="text-lg text-slate-500 font-normal uppercase">USDT</span>
+                        </div>
+                        
+                        <div class="mt-6 w-full px-4 py-3 bg-slate-900/50 border border-slate-800 rounded-xl text-left">
+                            <h4 class="text-[10px] text-[#c6a35f] font-bold uppercase mb-2">License Terms:</h4>
+                            <ul class="text-[10px] text-slate-400 space-y-1.5 list-disc list-inside">
+                                <li>Instant 24-hour full access.</li>
+                                <li>Authorization bound to your current Node IP.</li>
+                                <li class="text-red-400/80 font-bold">IP switching is restricted during session.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="payBtn" onclick="startActivation()" class="w-full bg-[#c6a35f] hover:bg-[#a4864b] text-white font-bold py-4 rounded-2xl transition-all active:scale-95 text-xs uppercase tracking-widest shadow-lg shadow-[#c6a35f]/20">
+                    Unlock Now via SkillPay
+                </button>
+                <p class="text-[9px] text-slate-600 mt-4 text-center uppercase tracking-tighter italic">Secure Payment encrypted by blockchain gateway</p>
+            </div>
+
+            <div id="pollSection" class="hidden text-center py-6">
+                <div class="flex justify-center mb-6">
+                    <div class="w-12 h-12 border-4 border-[#c6a35f]/20 border-t-[#c6a35f] rounded-full animate-spin"></div>
+                </div>
+                <h3 class="text-[#c6a35f] font-bold text-xs uppercase tracking-widest">Verifying Transaction...</h3>
+                <p class="text-[10px] text-slate-500 mt-2">Please complete the payment in the new window. <br>The session will activate automatically.</p>
+            </div>
+
+            <div id="successSection" class="hidden animate-fade-in">
+                <div class="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-6 text-center">
+                    <div class="text-emerald-400 mb-4">
+                        <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-emerald-400 font-bold text-lg uppercase tracking-tight">Access Granted</h3>
+                    <p class="text-[10px] text-emerald-500/80 mt-1 uppercase">Payment successful! Your 24h pass is active.</p>
+                    
+                    <div class="mt-4 space-y-3">
+                        <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 text-left">
+                            <label class="text-[9px] text-slate-500 font-bold uppercase block mb-1">Authorized Node IP</label>
+                            <span class="text-[#c6a35f] font-mono text-sm" id="authIp">---.---.---.---</span>
+                        </div>
+                        <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 text-left">
+                            <label class="text-[9px] text-slate-500 font-bold uppercase block mb-1">Session Expiry</label>
+                            <span class="text-emerald-400 font-mono text-sm" id="expiryInfo">Valid for 24h</span>
+                        </div>
+                    </div>
+
+                    <button onclick="window.location.href='/support'" class="mt-6 w-full bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-bold py-3 rounded-xl transition-all uppercase tracking-widest">
+                        Back to Dashboard
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let pollTimer = null;
+
+window.onload = async () => {
+    try {
+        const response = await fetch('/api/activate-key', { method: 'POST' });
+        const data = await response.json();
+        if (response.status === 200 && data.ok) {
+            showSuccess(data);
+        }
+    } catch (e) { console.log("Session not active."); }
+};
+
+let paymentWindow = null;
+
+async function startActivation() {
+    const btn = document.getElementById('payBtn');
+    btn.disabled = true;
+    btn.innerText = "REDIRECTING...";
+
+    paymentWindow = window.open('about:blank', '_blank');
+
+    try {
+        const response = await fetch('/api/activate-key', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await response.json();
+
+        if (response.status === 402 && data.payment_url) {
+            if (paymentWindow && !paymentWindow.closed) {
+                paymentWindow.location.href = data.payment_url;
+            } else {
+                window.open(data.payment_url, '_blank');
+            }
+            document.getElementById('initSection').classList.add('hidden');
+            document.getElementById('pollSection').classList.remove('hidden');
+            pollPaymentStatus();
+        } else if (data.ok) {
+            if (paymentWindow) paymentWindow.close();
+            showSuccess(data);
+        } else {
+            if (paymentWindow) paymentWindow.close();
+            alert(data.message || "Gateway error, please try again.");
+            btn.disabled = false;
+            btn.innerText = "UNLOCK NOW VIA SKILLPAY";
+        }
+    } catch (err) {
+        if (paymentWindow) paymentWindow.close();
+        alert("Network Error");
+        btn.disabled = false;
+        btn.innerText = "UNLOCK NOW VIA SKILLPAY";
+    }
+}
+
+function pollPaymentStatus() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(async () => {
+        try {
+            const response = await fetch('/api/activate-key', { method: 'POST' });
+            const data = await response.json();
+            if (response.status === 200 && data.ok) {
+                clearInterval(pollTimer);
+                showSuccess(data);
+            }
+        } catch (e) { console.log("Verifying..."); }
+    }, 4000);
+}
+
+function showSuccess(data) {
+    document.getElementById('pollSection').classList.add('hidden');
+    document.getElementById('initSection').classList.add('hidden');
+    const successSection = document.getElementById('successSection');
+    successSection.classList.remove('hidden');
+    
+    document.getElementById('authIp').innerText = data.ip || "Detected IP";
+    document.getElementById('expiryInfo').innerText = `Valid until: ${data.expires_at}`;
+}
+</script>
+
+</body>
+</html>
